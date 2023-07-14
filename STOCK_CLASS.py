@@ -11,11 +11,10 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import LSTM
 
-class APPL_STOCK:
+class STOCK:
     
     df = None
     window_data = None
-    window_data_np = None
     time = None
     x = None
     y = None
@@ -29,16 +28,16 @@ class APPL_STOCK:
     x_test = None
     y_test = None
     model = None
-    model_summary = None
     forecasted_dates = None
     forecasted_data = None
 
-    def __init__(self):
+    def __init__(self,type):    
         headers = {
             'Content-Type': 'application/json'
         }
-        requestResponse = requests.get("https://api.tiingo.com/tiingo/daily/aapl/prices?startDate=2015-01-02&token=424c723fd790ecb18d9ba7cd2e8834b6b5a7eaa7", headers=headers)
-        self.df = pd.DataFrame(requestResponse.json()) 
+        url = "https://api.tiingo.com/tiingo/daily/" + type + "/prices?startDate=2015-01-02&token=424c723fd790ecb18d9ba7cd2e8834b6b5a7eaa7"
+        requestResponse = requests.get(url, headers=headers)
+        self.df = pd.DataFrame(requestResponse.json())
         self.df = self.df[['date','close']]
         self.df['date'] = self.df['date'].apply(self.string_to_date)
         self.df.drop(0,axis=0,inplace=True)
@@ -46,11 +45,12 @@ class APPL_STOCK:
         self.window_data = pd.DataFrame(self.window_data,columns=['date','day1','day2','day3','day4','day5','Target'])
         self.time , self.x , self.y = self.reshape_data()
         self.test_train_split()
-        self.plotted_data()
+        self.plotted_data(type)
         self.define_model()
         self.train_model()
-        self.plot_prediction()
-        self.forecast()
+        self.plot_prediction(type)
+        self.forecast(type)
+        
 
     def string_to_date(self,date):
         date = date[0:10]
@@ -86,7 +86,7 @@ class APPL_STOCK:
         self.time_val , self.x_val , self.y_val = self.time[split1:split2],self.x[split1:split2],self.y[split1:split2]
         self.time_test , self.x_test , self.y_test = self.time[split2:],self.x[split2:],self.y[split2:]
     
-    def plotted_data(self):
+    def plotted_data(self,type):
         fig, ax = plt.subplots()
         ax.plot(self.time_train, self.y_train)
         ax.plot(self.time_val, self.y_val)
@@ -94,8 +94,8 @@ class APPL_STOCK:
         ax.legend(['Training', 'Validation', 'Testing'])
         ax.set_xlabel('Time')
         ax.set_ylabel('Price')
-        ax.set_title('APPL Stock Data')
-        path = 'C:\\Users\\amanr\\Desktop\\FLASK\\static\\APPL_PLOTTED_DATA.png'
+        ax.set_title('Stock Data')
+        path = 'C:\\Users\\amanr\\Desktop\\FLASK\\static\\' + type + '_PLOTTED_DATA.png'
         fig.savefig(path)
         plt.close(fig)
 
@@ -115,20 +115,20 @@ class APPL_STOCK:
         self.model.fit(self.x_train,self.y_train,validation_data = (self.x_val,self.y_val) , epochs = 50)
 
     
-    def plot_prediction(self):
+    def plot_prediction(self,type):
         fig, ax = plt.subplots()
         ax.plot(self.time_test, self.y_test)
         ax.plot(self.time_test, self.model.predict(self.x_test))
         ax.legend(['Actual data', 'Prediction'])
         ax.set_xlabel('Time')
         ax.set_ylabel('Price')
-        ax.set_title('APPL Stock Prediction')
-        path = 'C:\\Users\\amanr\\Desktop\\FLASK\\static\\APPL_PREDICTED_DATA.png'
+        ax.set_title('Stock Prediction')
+        path = 'C:\\Users\\amanr\\Desktop\\FLASK\\static\\' + type + '_PREDICTED_DATA.png'
         fig.savefig(path)
         plt.close(fig)
 
     
-    def forecast(self):     
+    def forecast(self,type):     
         self.forecasted_data = self.x_test[-1:][0]
         self.forecasted_data = self.forecasted_data.reshape(5,)
         dates = []
@@ -147,11 +147,11 @@ class APPL_STOCK:
         ax.legend(['Forecasted_data'])
         ax.set_xlabel('DATE')
         ax.set_ylabel('Price')
-        ax.set_title('APPL Stock Forecasting')
-        path = 'C:\\Users\\amanr\\Desktop\\FLASK\\static\\APPL_FORECASTING_DATA.png'
+        ax.set_title('Stock Forecasting')
+        path = 'C:\\Users\\amanr\\Desktop\\FLASK\\static\\'+ type + '_FORECASTING_DATA.png'
         fig.savefig(path)
         plt.close(fig)
 
 
-
-
+# APPL = STOCK('AAPL')
+# print(APPL.forecasted_data)
